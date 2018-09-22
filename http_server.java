@@ -1,29 +1,26 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.util.Scanner;
 import java.net.ServerSocket;
 import java.net.Socket;
 public class http_server{ 
     public static void main(String[] args) throws Exception { 
-        // listens on port 8080
-        final ServerSocket server = new ServerSocket(8080);
-        System.out.println("Listening for connection on port 8080 ...."); 
-        while (true){ // spin forever 
-            Socket client_socket = server.accept();
-            InputStreamReader isr = new InputStreamReader(client_socket.getInputStream());
-            BufferedReader reader = new BufferedReader(isr);
-            String line = reader.readLine();
-            while(!line.isEmpty()) {
-                System.out.println(line);
-                line = reader.readLine();
+        int port = Integer.parseInt(args[0]);
+        String sending_msg = "Receiving message from server\n\n";
+        System.out.println("Listening for connection on port "+port+"..."); 
+        // Reading text file into scanner to be put into a String
+        Scanner scanner = new Scanner(new File("ArduinoIDE_guide_galileo.html"), "UTF-8");
+        String text = scanner.useDelimiter("\\A").next();
+        scanner.close();
+        // open up port for listening
+        ServerSocket server = new ServerSocket(port);
+        // Port is kept open 
+        while(true) {
+            try (Socket socket = server.accept()) {
+                // Sending file to connected client
+                socket.getOutputStream().write(sending_msg.getBytes("UTF-8"));
+                socket.getOutputStream().write(text.getBytes("UTF-8"));
             }
-            /*
-            1. Read HTTP request from the client socket
-            2. Prepare an HTTP response
-            3. Send HTTP response to the client
-            4. Close the socket
-            */
-        } 
-    } 
+        }
+    }
 }
 
