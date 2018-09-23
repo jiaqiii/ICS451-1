@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 public class http_server{ 
     public static void main(String[] args) throws Exception { 
+        // Parse port argument as int
         int port = Integer.parseInt(args[0]);
 <<<<<<< refs/remotes/origin/hw4:hw2/http_server.java
         String sending_msg = "Receiving message from server\n\n";
