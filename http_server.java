@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 public class http_server{ 
     public static void main(String[] args) throws Exception { 
+        // Parse port argument as int
         int port = Integer.parseInt(args[0]);
 
         // Lets client know message is coming and when it is fully delivered
