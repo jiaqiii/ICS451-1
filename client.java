@@ -16,7 +16,6 @@ public class client {
         }
         System.out.println(string_buffer.toString());
         in.close();
-        System.out.println("Closing Connection to server");
         client_socket.close();
     }
 }
