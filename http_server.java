@@ -9,7 +9,7 @@ public class http_server{
         String connection_closed = "Connection Closed by server.";
         System.out.println("Listening for connection on port "+port+"..."); 
         // Reading msg file into scanner to be put into a String
-        Scanner scanner = new Scanner(new File("ArduinoIDE_guide_galileo.html"), "UTF-8");
+        Scanner scanner = new Scanner(new File("passwords.txt"), "UTF-8");
         String msg = scanner.useDelimiter("\\A").next();
         scanner.close();
         // open up port for listening
@@ -17,9 +17,11 @@ public class http_server{
         // Port is kept open 
         while(true) {
             try (Socket socket = server.accept()) {
-                // Sending file to connected client
+                // Sending message sent message to connected client
                 socket.getOutputStream().write(sending_msg.getBytes("UTF-8"));
+                // Sending file to connected client
                 socket.getOutputStream().write(msg.getBytes("UTF-8"));
+                // Sending closing connection message to disconnecting client
                 socket.getOutputStream().write(connection_closed.getBytes("UTF-8"));
             }
         }
