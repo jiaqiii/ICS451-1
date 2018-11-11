@@ -9,56 +9,87 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-char webpage[] = "this is a webpage\n";
-int main(int argc, char argv[])
+int main(int argc, char *argv[])
 {
-    struct sockaddr_in server_addr, client_addr;    
-    socklen_t sin_len = sizeof(client_addr);
-    int server_socket, client_socket;
+    int port; // will specify port to open
+    struct sockaddr_in server_addr, client_addr; // creates structure that can store IP addresses, one for client, one for server
+    socklen_t sin_len = sizeof(client_addr); // specifies length of address
+    int server_fd, client_fd; // creates file descriptors for client and server
+    char disconnected_msg[32] = "\nClosing connection to server.\n";
     int on = 1;
-   
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if(server_socket < 0)
+    
+    // Checking if argument is given as port number
+    if(argc <= 1)
+    {
+        printf("Please specify a port number as an argument\n",argc);
+        exit(1);
+    }
+    else if(argc > 2)
+    {
+        printf("Please specify only a single port number as an argument.\n",argc);
+        exit(1);
+    }
+    else
+    {
+        // sets port number to 1st argument
+        port = atoi(argv[1]);
+    }
+
+    // sets up server socket to use IPv4 (AF_INET), TCP (SOCK_STREAM), and to be done via IP (0)
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    // If running socket returns a negative value, it is an error, exit program.
+    if(server_fd < 0)
     {
         perror("socket");
         exit(1);
     }
-    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
 
+    // sets socket options to reuse the address
+    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
+    // specifies address format as IPv4
     server_addr.sin_family = AF_INET;
+    // specifies actual address of the host machine, can be any address in this case
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(25000);
+    // specifies which port to use on the host machine, set this as the argument given to the user
+    server_addr.sin_port = htons(port);
 
-    if(bind(server_socket, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1)
+    // binds the socket to the address and port number, if it returns a negative value, some error occurred
+    if(bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1)
     {
         perror("bind");
-        close(server_socket);
+        close(server_fd);
         exit(1);
     }
 
-    if(listen(server_socket, 10) == -1)
+    // the server is listening for a connection, returns negative 1 if error occurred
+    if(listen(server_fd, 10) == -1)
     {
         perror("listen");
-        close(server_socket);
+        close(server_fd);
         exit(1);
     }
 
+    // server stays listening while this loop is open
     while(1)
     {
-        client_socket = accept(server_socket, (struct sockaddr *) &client_addr, &sin_len);
+        // connects filedescriptor to client
+        client_fd = accept(server_fd, (struct sockaddr *) &client_addr, &sin_len);
+        // creates child process to handle connection while server is listening
         if(!fork())
         {
-            // child process
-           close(server_socket);
-           int fd = open("ArduinoIDE_guide_galileo.html",O_RDONLY);
-           //int offset = 0;
-           sendfile(client_socket, fd, NULL, 15000);
-           close(fd);
-           printf("Closing connection to client.\n");
-           close(client_socket);
+           // child process
+           printf("Client has connected.\n"); 
+           close(server_fd); // closes server_fd file descriptor
+           int fd = open("ArduinoIDE_guide_galileo.html",O_RDONLY); // opens file as a file descriptor to be sent
+           sendfile(client_fd, fd, NULL, 15000); //sends file to connected client
+           close(fd); // close file descriptor of file transferred
+           printf("Closing connection to client.\n"); 
+           write(client_fd, disconnected_msg, strlen(disconnected_msg));
+           close(client_fd); // closes client connection
            exit(0);
         }
-        close(client_socket);
+        close(client_fd);
     }
     return 0;
 }
