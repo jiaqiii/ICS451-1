@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in remote_addr; // creates structure that can store IP addresses, one for client, one for server
     int addrlen = sizeof(remote_addr);
     int socket_fd; // creates file descriptor for tcp header to be sent and received
+    char file[15000]; // buffer for file
     unsigned char syn[20]; // buffer for initial SYN tcp header
     unsigned char syn_ack[20]; // buffer for SYN-ACK tcp header
     unsigned char ack[20]; // buffer for ACK tcp header
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
     // setting window size to 17520 (0x4470)
     ack[14] = 0x44;
     ack[15] = 0x70;
-    // setting checsum to 0xffff
+    // setting checksum to 0xffff
     ack[16] = 0xff;
     ack[17] = 0xff;
     // setting URG pointer to all zeros
@@ -130,8 +131,13 @@ int main(int argc, char *argv[])
     ack[19] = 0x00;
     printf("\nSending TCP ACK packet in response to SYN ACK.\n\n");
     send(socket_fd, ack, 20, 0);
-    
-   //recv(socket_fd, syn, sizeof(syn), 0);
-    // print syn to the screen
-//    printf("%s", syn);
+    printf("Receiving file\n\n");
+    int k;
+    for(k = 0;k<20;k++)
+    {
+        printf("Sent TCP ACK Header Byte #%d: %d\n", j, ack[k]);
+    }
+    recv(socket_fd, file , sizeof(file), 0);
+    // print file to the screen
+    printf("%s", file);
 } 

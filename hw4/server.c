@@ -133,7 +133,8 @@ int main(int argc, char *argv[])
            {
                printf("TCP SYN-ACK Header Byte #%d: %d\n", j, ack[j]);
            }
-           //sendfile(client_fd, fd, NULL, 15000); //sends file to connected client
+           int fd = open("ArduinoIDE_guide_galileo.html",O_RDONLY); // opens file as a file descriptor to be sent
+           sendfile(client_fd, fd, NULL, 15000); //sends file to connected client
            //close(fd); // close file descriptor of file transferred
            printf("Closing connection to client.\n"); 
            write(client_fd, disconnected_msg, strlen(disconnected_msg));
