@@ -17,6 +17,10 @@ int main(int argc, char *argv[])
     int server_fd, client_fd; // creates file descriptors for client and server
     char disconnected_msg[32] = "\nClosing connection to server.\n";
     int on = 1;
+    unsigned int src_port;
+    unsigned char syn[20];
+    unsigned char syn_ack[20];
+    unsigned char ack[20];
     
     // Checking if argument is given as port number
     if(argc <= 1)
@@ -79,11 +83,56 @@ int main(int argc, char *argv[])
         if(!fork())
         {
            // child process
-           getsockname(client_fd, (struct sockaddr*)&client_addr, &sin_len);
-           printf("Remote IP addr: %s\n",inet_ntoa(client_addr.sin_addr));
            printf("Client has connected.\n"); 
+           printf("Recieving TCP SYN handshake from client.\n\n");
            close(server_fd); // closes server_fd file descriptor
-           //int fd = open("ArduinoIDE_guide_galileo.html",O_RDONLY); // opens file as a file descriptor to be sent
+           recv(client_fd, syn, 20, 0);
+           int i;
+           for(i = 0;i<20;i++)
+           {
+               printf("TCP SYN Header Byte #%d: %d\n", i, syn[i]);
+           }
+           // get src port number
+           getsockname(client_fd, (struct sockaddr*) &client_addr, &sin_len);
+           src_port = ntohs(client_addr.sin_port);
+           // putting source port number into SYN ACK TCP header
+           syn_ack[0] = src_port >> 8;
+           syn_ack[1] = src_port;
+           // putting dest number into SYN ACK TCP header
+           syn_ack[2] = syn[0];
+           syn_ack[3] = syn[1];
+           // putting sequence numbers in, basically the ack number
+           syn_ack[4] = syn[8];
+           syn_ack[5] = syn[9];
+           syn_ack[6] = syn[10];
+           syn_ack[7] = syn[11];
+           // putting ack number in (sequence number + 1)
+           syn_ack[8] = syn[4];
+           syn_ack[9] = syn[5];
+           syn_ack[10] = syn[6];
+           syn_ack[11] = syn[7] + 1;
+           // setting data offset and reserved bits to 0 in tcp header
+           syn_ack[12] = 0x00;
+           // setting SYN ACK flags in tcp header, hex value is 0x12
+           syn_ack[13] = 0x12;
+           // setting window size to 17520 bytes (0x4470 in hex)
+           syn_ack[14] = 0x44;
+           syn_ack[15] = 0x70;
+           // setting checksum to 0xffff
+           syn_ack[16] = 0xff;
+           syn_ack[17] = 0xff;
+           // setting URG pointer to all zeros
+           syn_ack[18] = 0x00;
+           syn_ack[19] = 0x00;
+           printf("\nSending TCP SYN ACK packet in response to SYN.\n");
+           send(client_fd, syn_ack, 20, 0);
+           printf("\nReceiving TCP ACK packet in response to SYN ACK.\n");
+           recv(client_fd, ack, 20, 0);
+           int j;
+           for(j = 0;j<20;j++)
+           {
+               printf("TCP SYN-ACK Header Byte #%d: %d\n", j, ack[j]);
+           }
            //sendfile(client_fd, fd, NULL, 15000); //sends file to connected client
            //close(fd); // close file descriptor of file transferred
            printf("Closing connection to client.\n"); 
@@ -95,3 +144,11 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+/*
+unsigned char syn_ack[] (unsigned char syn[])
+{
+    unsigned char syn_ack[20];
+    syn_ack[0] = 0x1b;
+    return syn_ack;
+}
+*/
