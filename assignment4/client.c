@@ -14,16 +14,26 @@ int main(int argc, char *argv[])
     struct sockaddr_in remote_addr; // creates structure that can store IP addresses, one for client, one for server
     int addrlen = sizeof(remote_addr);
     int socket_fd; // creates file descriptor for tcp header to be sent and received
-    char file[15000]; // buffer for file
+    char file[5000]; // buffer for file
     unsigned char syn[20]; // buffer for initial SYN tcp header
     unsigned char syn_ack[20]; // buffer for SYN-ACK tcp header
     unsigned char ack[20]; // buffer for ACK tcp header
+    unsigned char fin[20];
+    unsigned char ack2[20];
+    unsigned char fin2[20];
+    unsigned char ack3[20];
     unsigned int src_port; // will specify source port that was opened
     unsigned int dest_port; // will specify port to open
     unsigned int seq_num0; // will generate random seq number byte 1
     unsigned int seq_num1; // will generate random seq number byte 2
     unsigned int seq_num2; // will generate random seq number byte 3
     unsigned int seq_num3; // will generate random seq number byte 4
+    
+    FILE * received_file;
+    char buffer[BUFSIZ];
+    int remain_data;
+    int file_size;
+    ssize_t len; 
     
     // Checking if argument is given as port number
     if(argc <= 1)
@@ -129,15 +139,59 @@ int main(int argc, char *argv[])
     // setting URG pointer to all zeros
     ack[18] = 0x00;
     ack[19] = 0x00;
-    printf("\nSending TCP ACK packet in response to SYN ACK.\n\n");
+    printf("\nSending TCP ACK packets in response to SYN ACK.\n\n");
     send(socket_fd, ack, 20, 0);
     printf("Receiving file\n\n");
     int k;
     for(k = 0;k<20;k++)
     {
-        printf("Sent TCP ACK Header Byte #%d: %d\n", j, ack[k]);
+        printf("Sent TCP ACK Header Byte #%d: %d\n", k, ack[k]);
     }
-    recv(socket_fd, file , sizeof(file), 0);
+    // recv(socket_fd, file , sizeof(file), 0);
+    recv(socket_fd, buffer, BUFSIZ, 0);
+    file_size = atoi(buffer);
+    fopen("image_recv.png", "w");
+    remain_data = file_size;
+    printf("resttesy\n\n\n\n\n");
+    while(((len = recv(socket_fd, buffer, BUFSIZ, 0)) > 0) && (remain_data > 0))
+    {
+        fwrite(buffer, sizeof(char), len, received_file);
+        remain_data -= len;
+        printf("Received %d bytes and we hope :- %d bytes\n", len, remain_data);
+    }
+    fclose(received_file);
     // print file to the screen
     printf("%s", file);
+    /*
+    printf("Sending FIN to server\n\n");
+    // setting source packet number for ack packet
+    fin[0] = src_port >> 8;
+    fin[1] = src_port;
+    // setting dest packet number for ack packet
+    fin[2] = dest_port >> 8;
+    fin[3] = dest_port;
+    // put sequence in, basically ack number from last image file packet
+    fin[4] = syn_ack[8];
+    fin[5] = syn_ack[9];
+    fin[6] = syn_ack[10];
+    fin[7] = syn_ack[11];
+    // putting ack number in, (sequence number from SYN ACK + 1)
+    fin[8] = syn_ack[4];
+    fin[9] = syn_ack[5];
+    fin[10] = syn_ack[6];
+    fin[11] = syn_ack[7] + 1;
+    // setting data offset and reserved bits to 0 in tcp header
+    fin[12] = 0x00;
+    // setting SYN ACK flags in tcp header, hex value is 0x10
+    fin[13] = 0x10;
+    // setting window size to 17520 (0x4470)
+    fin[14] = 0x44;
+    fin[15] = 0x70;
+    // setting checksum to 0xffff
+    fin[16] = 0xff;
+    fin[17] = 0xff;
+    // setting URG pointer to all zeros
+    fin[18] = 0x00;
+    fin[19] = 0x00;
+    */
 } 
