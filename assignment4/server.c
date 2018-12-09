@@ -36,12 +36,12 @@ int main(int argc, char *argv[])
     // Checking if argument is given as port number
     if(argc <= 1)
     {
-        printf("Please specify a port number as an argument\n",argc);
+        printf("Please specify a port number as an argument\n");
         exit(1);
     }
     else if(argc > 2)
     {
-        printf("Please specify only a single port number as an argument.\n",argc);
+        printf("Please specify only a single port number as an argument.\n");
         exit(1);
     }
     else
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
                printf("Server sent %d bytes from file's data, offset is now %d and remaining data is %d\n", sent_bytes, offset, remain_data);
            }
            // putting source port number into SYN ACK TCP header
-           fin[0] = src_port >> 8;
+           syn_ack[0] = src_port >> 8;
            syn_ack[1] = src_port;
            // putting dest number into SYN ACK TCP header
            syn_ack[2] = syn[0];

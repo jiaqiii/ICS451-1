@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
         remain_data -= len;
         printf("Received %d bytes and we hope :- %d bytes\n", len, remain_data);
     }
-    // print file to the screen
+    // close file descriptor
     fclose(received_file);
     /*
     printf("Sending FIN to server\n\n");
