@@ -147,26 +147,37 @@ int main(int argc, char *argv[])
     {
         printf("Sent TCP ACK Header Byte #%d: %d\n", k, ack[k]);
     }
-    // recv(socket_fd, file , sizeof(file), 0);
+    // starts receiving file in 1000 byte each
     recv(socket_fd, buffer, 1000, 0);
     file_size = atoi(buffer);
     received_file = fopen("image_recv.png", "w");
+    // gets file size
     remain_data = file_size;
-    printf("File size: %s\n",buffer);
+    // starts to receive image file from from server 
+    // sending 1000 byte pieces
     while(((len = recv(socket_fd, buffer, 1000, 0)) > 0) && (remain_data > 0))
     {
         fwrite(buffer, sizeof(char), len, received_file);
         remain_data -= len;
-        printf("Received %d bytes and we hope :- %d bytes\n", len, remain_data);
+        printf("Received %d bytes, remaining: %d bytes\n", len, remain_data);
+        // seems to get stuck whem remain data hits 0, added this to remove that issue
+        if(remain_data == 0)
+        {
+            break;
+        }
     }
-    // close file descriptor
+    // printing received image file as string
+    printf("%s\n\n", received_file);
+    // close file descriptor as file has been sent
     fclose(received_file);
-    /*
-    printf("Sending FIN to server\n\n");
+    
+    // Starts sending simulated TCP teardown with first FIN flagged packet
+    printf("Starting TCP teardown.\n");
+    printf("Sending FIN flagged TCP packet to server.\n\n");
     // setting source packet number for ack packet
     fin[0] = src_port >> 8;
     fin[1] = src_port;
-    // setting dest packet number for ack packet
+    // setting dest packet number 
     fin[2] = dest_port >> 8;
     fin[3] = dest_port;
     // put sequence in, basically ack number from last image file packet
@@ -181,8 +192,8 @@ int main(int argc, char *argv[])
     fin[11] = syn_ack[7] + 1;
     // setting data offset and reserved bits to 0 in tcp header
     fin[12] = 0x00;
-    // setting SYN ACK flags in tcp header, hex value is 0x10
-    fin[13] = 0x10;
+    // setting FIN flag in tcp header, hex value is 0x01
+    fin[13] = 0x01;
     // setting window size to 17520 (0x4470)
     fin[14] = 0x44;
     fin[15] = 0x70;
@@ -192,5 +203,54 @@ int main(int argc, char *argv[])
     // setting URG pointer to all zeros
     fin[18] = 0x00;
     fin[19] = 0x00;
-    */
+    // sending FIN flagged TCP packet
+    send(socket_fd, fin, 20, 0);
+    // waiting for reply back to FIN
+    printf("Received ACK for client FIN packet sent.\n");
+    recv(socket_fd, ack2, 20, 0);
+    for(j = 0;j<20;j++)
+    {
+        printf("TCP ACK Header Byte #%d: %d\n", j, ack2[j]);
+    }
+    recv(socket_fd, fin2, 20, 0);
+    printf("Received server FIN for client FIN packet sent.\n");
+    for(j = 0;j<20;j++)
+    {
+        printf("TCP server FIN Header Byte #%d: %d\n", j, fin2[j]);
+    }
+    // Sending final ACK TCP packet back to terminate connection
+    printf("Sending final ACK packet\n");
+    send(socket_fd, ack3, 20, 0);
+    // setting source packet number for ack packet
+    ack3[0] = src_port >> 8;
+    ack3[1] = src_port;
+    // setting dest packet number for ack packet
+    ack3[2] = dest_port >> 8;
+    ack3[3] = dest_port;
+    // put sequence in, basically ack number from last image file packet
+    ack3[4] = fin2[8];
+    ack3[5] = fin2[9];
+    ack3[6] = fin2[10];
+    ack3[7] = fin2[11];
+    // putting ack number in, (sequence number from SYN ACK + 1)
+    ack3[8] = fin2[4];
+    ack3[9] = fin2[5];
+    ack3[10] = fin2[6];
+    ack3[11] = fin2[7] + 1;
+    // setting data offset and reserved bits to 0 in tcp header
+    ack3[12] = 0x00;
+    // setting ACK flag in tcp header, hex value is 0x10
+    ack3[13] = 0x10;
+    // setting window size to 17520 (0x4470)
+    ack3[14] = 0x44;
+    ack3[15] = 0x70;
+    // setting checksum to 0xffff
+    ack3[16] = 0xff;
+    ack3[17] = 0xff;
+    // setting URG pointer to all zeros
+    ack3[18] = 0x00;
+    ack3[19] = 0x00;
+    printf("\nDisconnecting from server now...\n");
+    // Close connection
+    close(socket_fd);
 } 

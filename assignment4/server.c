@@ -15,7 +15,6 @@ int main(int argc, char *argv[])
     struct sockaddr_in server_addr, client_addr; // creates structure that can store IP addresses, one for client, one for server
     socklen_t sin_len = sizeof(client_addr); // specifies length of address
     int server_fd, client_fd; // creates file descriptors for client and server
-    char disconnected_msg[1000] = "\nClosing connection to server.\n";
     int on = 1;
     unsigned int src_port;
     unsigned char syn[20];
@@ -72,7 +71,6 @@ int main(int argc, char *argv[])
     int fd = open("image.png",O_RDONLY); // opens file as a file descriptor to be sent
     // get file stats
     fstat(fd, &file_stat);
-    printf("File size: \n%d bytes \n", file_stat.st_size);
 
     // binds the socket to the address and port number, if it returns a negative value, some error occurred
     if(bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1)
@@ -150,49 +148,92 @@ int main(int argc, char *argv[])
            {
                printf("TCP SYN-ACK Header Byte #%d: %d\n", j, ack[j]);
            }
-    //       int fd = open("image.png",O_RDONLY); // opens file as a file descriptor to be sent
-           //sendfile(client_fd, fd, NULL, 5000); //sends file to connected client
            len = send(client_fd, file_size, sizeof(file_size), 0); 
            offset = 0;
-           printf("%d\n",1000);
            remain_data = file_stat.st_size;
            while(((sent_bytes = sendfile(client_fd, fd, &offset, 1000)) > 0) && (remain_data > 0))
            {
-               printf("Server sent %d bytes from file's data, offset is now %d and remaining data is %d\n", sent_bytes, offset, remain_data);
+               printf("Server sent %d bytes from file's data and remaining data is %d\n", sent_bytes, remain_data);
                remain_data -= sent_bytes;
-               printf("Server sent %d bytes from file's data, offset is now %d and remaining data is %d\n", sent_bytes, offset, remain_data);
+               printf("Server sent %d bytes from file's data and remaining data is %d\n", sent_bytes, remain_data);
            }
-           // putting source port number into SYN ACK TCP header
-           syn_ack[0] = src_port >> 8;
-           syn_ack[1] = src_port;
-           // putting dest number into SYN ACK TCP header
-           syn_ack[2] = syn[0];
-           syn_ack[3] = syn[1];
+           // receiving FIN from client
+           recv(client_fd, fin, 20, 0);
+           for(j = 0;j<20;j++)
+           {
+               printf("TCP FIN Header Byte #%d: %d\n", j, fin[j]);
+           }
+           // putting source port number into TCP header
+           ack2[0] = src_port >> 8;
+           ack2[1] = src_port;
+           // putting dest number into TCP header
+           ack2[2] = fin[0];
+           ack2[3] = fin[1];
            // putting sequence numbers in, basically the ack number
-           syn_ack[4] = syn[8];
-           syn_ack[5] = syn[9];
-           syn_ack[6] = syn[10];
-           syn_ack[7] = syn[11];
+           ack2[4] = fin[8];
+           ack2[5] = fin[9];
+           ack2[6] = fin[10];
+           ack2[7] = fin[11];
            // putting ack number in (sequence number + 1)
-           syn_ack[8] = syn[4];
-           syn_ack[9] = syn[5];
-           syn_ack[10] = syn[6];
-           syn_ack[11] = syn[7] + 1;
+           ack2[8] = fin[4];
+           ack2[9] = fin[5];
+           ack2[10] = fin[6];
+           ack2[11] = fin[7] + 1;
            // setting data offset and reserved bits to 0 in tcp header
-           syn_ack[12] = 0x00;
-           // setting SYN ACK flags in tcp header, hex value is 0x12
-           syn_ack[13] = 0x12;
+           ack2[12] = 0x00;
+           // setting ACK flag in tcp header, hex value is 0x10
+           ack2[13] = 0x10;
            // setting window size to 17520 bytes (0x4470 in hex)
-           syn_ack[14] = 0x44;
-           syn_ack[15] = 0x70;
+           ack2[14] = 0x44;
+           ack2[15] = 0x70;
            // setting checksum to 0xffff
-           syn_ack[16] = 0xff;
-           syn_ack[17] = 0xff;
+           ack2[16] = 0xff;
+           ack2[17] = 0xff;
            // setting URG pointer to all zeros
-           syn_ack[18] = 0x00;
-           
+           ack2[18] = 0x00;
+           ack2[19] = 0x00;
+           // sending ACK to client for FIN
+	   send(client_fd, ack2, 20, 0);
+         
+           // sending FIN to client 
+           send(client_fd, fin2, 20, 0);
+           // putting source port number into FIN TCP header
+           fin2[0] = src_port >> 8;
+           fin2[1] = src_port;
+           // putting dest number into TCP header
+           fin2[2] = ack2[0];
+           fin2[3] = ack2[1];
+           // putting sequence numbers in, basically the ack number
+           fin2[4] = ack2[8];
+           fin2[5] = ack2[9];
+           fin2[6] = ack2[10];
+           fin2[7] = ack2[11];
+           // putting ack number in (sequence number + 1)
+           fin2[8] = ack2[4];
+           fin2[9] = ack2[5];
+           fin2[10] = ack2[6];
+           fin2[11] = ack2[7] + 2; // adding 1 more as simply adding one will be next seq number
+           // setting data offset and reserved bits to 0 in tcp header
+           fin2[12] = 0x00;
+           // setting FIN flag in tcp header, hex value is 0x01
+           fin2[13] = 0x01;
+           // setting window size to 17520 bytes (0x4470 in hex)
+           fin2[14] = 0x44;
+           fin2[15] = 0x70;
+           // setting checksum to 0xffff
+           fin2[16] = 0xff;
+           fin2[17] = 0xff;
+           // setting URG pointer to all zeros
+           fin2[18] = 0x00;
+           fin2[19] = 0x00;
+           send(client_fd, fin2, 20, 0);
+           recv(client_fd, ack3, 20, 0);
+           for(j = 0;j<20;j++)
+           {
+               printf("TCP final ACK Header Byte #%d: %d\n", j, ack3[j]);
+           }
+ 
            printf("Closing connection to client.\n"); 
-           write(client_fd, disconnected_msg, strlen(disconnected_msg));
            close(client_fd); // closes client connection
            exit(0);
         }
