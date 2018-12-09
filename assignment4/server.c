@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in server_addr, client_addr; // creates structure that can store IP addresses, one for client, one for server
     socklen_t sin_len = sizeof(client_addr); // specifies length of address
     int server_fd, client_fd; // creates file descriptors for client and server
-    char disconnected_msg[32] = "\nClosing connection to server.\n";
+    char disconnected_msg[1000] = "\nClosing connection to server.\n";
     int on = 1;
     unsigned int src_port;
     unsigned char syn[20];
@@ -153,10 +153,10 @@ int main(int argc, char *argv[])
     //       int fd = open("image.png",O_RDONLY); // opens file as a file descriptor to be sent
            //sendfile(client_fd, fd, NULL, 5000); //sends file to connected client
            len = send(client_fd, file_size, sizeof(file_size), 0); 
-           printf("heloooooooooooooooooooooooooooooooo\n\n\n");
            offset = 0;
+           printf("%d\n",1000);
            remain_data = file_stat.st_size;
-           while(((sent_bytes = sendfile(client_fd, fd, &offset, BUFSIZ)) > 0) && (remain_data > 0))
+           while(((sent_bytes = sendfile(client_fd, fd, &offset, 1000)) > 0) && (remain_data > 0))
            {
                printf("Server sent %d bytes from file's data, offset is now %d and remaining data is %d\n", sent_bytes, offset, remain_data);
                remain_data -= sent_bytes;

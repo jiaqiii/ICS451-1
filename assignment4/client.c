@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     unsigned int seq_num3; // will generate random seq number byte 4
     
     FILE * received_file;
-    char buffer[BUFSIZ];
+    char buffer[1000];
     int remain_data;
     int file_size;
     ssize_t len; 
@@ -148,20 +148,19 @@ int main(int argc, char *argv[])
         printf("Sent TCP ACK Header Byte #%d: %d\n", k, ack[k]);
     }
     // recv(socket_fd, file , sizeof(file), 0);
-    recv(socket_fd, buffer, BUFSIZ, 0);
+    recv(socket_fd, buffer, 1000, 0);
     file_size = atoi(buffer);
-    fopen("image_recv.png", "w");
+    received_file = fopen("image_recv.png", "w");
     remain_data = file_size;
-    printf("resttesy\n\n\n\n\n");
-    while(((len = recv(socket_fd, buffer, BUFSIZ, 0)) > 0) && (remain_data > 0))
+    printf("File size: %s\n",buffer);
+    while(((len = recv(socket_fd, buffer, 1000, 0)) > 0) && (remain_data > 0))
     {
         fwrite(buffer, sizeof(char), len, received_file);
         remain_data -= len;
         printf("Received %d bytes and we hope :- %d bytes\n", len, remain_data);
     }
-    fclose(received_file);
     // print file to the screen
-    printf("%s", file);
+    fclose(received_file);
     /*
     printf("Sending FIN to server\n\n");
     // setting source packet number for ack packet
